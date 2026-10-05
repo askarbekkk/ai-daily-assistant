@@ -1,0 +1,123 @@
+name: Daily digest
+
+on:
+  schedule:
+    # GitHub cron is UTC and usually starts 5-15 min late, so runs are set 10 min early.
+    # 08:50 / 13:50 / 20:50 Asia/Seoul
+    - cron: "50 23 * * *"
+    - cron: "50 4 * * *"
+    - cron: "50 11 * * *"
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "Digest slot"
+        type: choice
+        options: [auto, morning, midday, evening]
+        default: auto
+
+concurrency:
+  group: digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TIMEZONE: Asia/Seoul
+      LLM_PROVIDER: gemini
+      DIGEST_LANGUAGE: ru
+      DIGEST_MAX_WORDS: "800"
+      NEWS_MAX: "10"
+      JOBS_MAX: "8"
+      LMS_HEADLESS: "true"
+      # Moodle (smart) is off in the cloud: its SSO currently forces a password reset, which blocks unattended
+      # login. Add it back as "smart,nsmart" once password login works.
+      LMS_INSTANCES: nsmart
+      LMS_SMART_KIND: moodle
+      LMS_SMART_URL: https://smart.wsu.ac.kr
+      # Students log in via the university SSO: "SSO login" button → "student ID login" tab
+      LMS_SMART_PRE_LOGIN_CLICKS: "a.btn-login-type-sso|text=학번/교번 로그인"
+      LMS_SMART_USERNAME_SELECTOR: "#iuser_id"
+      LMS_SMART_PASSWORD_SELECTOR: "#iuser_password"
+      LMS_SMART_SUBMIT_SELECTOR: 'button:has-text("로그인"):visible'
+      LMS_NSMART_KIND: canvas
+      LMS_NSMART_URL: https://nsmart.wsu.ac.kr
+      LMS_NSMART_USERNAME_SELECTOR: "#pseudonym_session_unique_id"
+      LMS_NSMART_PASSWORD_SELECTOR: "#pseudonym_session_password"
+      LMS_NSMART_SUBMIT_SELECTOR: "input[name=commit]"
+      # Secrets (Settings → Secrets and variables → Actions)
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      HH_APP_TOKEN: ${{ secrets.HH_APP_TOKEN }}
+      LMS_SMART_USERNAME: ${{ secrets.LMS_SMART_USERNAME }}
+      LMS_SMART_PASSWORD: ${{ secrets.LMS_SMART_PASSWORD }}
+      LMS_NSMART_USERNAME: ${{ secrets.LMS_NSMART_USERNAME }}
+      LMS_NSMART_PASSWORD: ${{ secrets.LMS_NSMART_PASSWORD }}
+      LMS_NSMART_TOKEN: ${{ secrets.LMS_NSMART_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Cache Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+
+      # State between runs: SQLite (seen items, LMS snapshot, changes) + LMS browser sessions.
+      # It holds session cookies, so the cache only ever contains an AES-256 encrypted archive.
+      - name: Check encryption key
+        env:
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+        run: test -n "$STATE_KEY" || { echo "::error::STATE_KEY secret is missing"; exit 1; }
+
+      - name: Restore encrypted state
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+
+      - name: Decrypt state
+        env:
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+        run: |
+          if [ -f state/data.tar.gz.enc ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in state/data.tar.gz.enc -pass env:STATE_KEY | tar xz
+            echo "State restored"
+          else
+            echo "No previous state, starting fresh"
+          fi
+
+      - name: Build and send digest
+        run: python -m app digest ${{ inputs.slot || 'auto' }} --refresh-lms --skip-empty
+
+      - name: Encrypt state
+        if: always()
+        env:
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+        run: |
+          mkdir -p state data
+          rm -f state/data.tar.gz.enc
+          tar cz data | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -out state/data.tar.gz.enc -pass env:STATE_KEY
+
+      - name: Save encrypted state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: state-${{ github.run_id }}-${{ github.run_attempt }}

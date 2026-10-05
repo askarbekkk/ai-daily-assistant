@@ -1,0 +1,9 @@
+[project]
+name = "ai-daily-assistant"
+version = "1.2.0"
+description = "Personal AI Daily Assistant & LMS Watcher"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
