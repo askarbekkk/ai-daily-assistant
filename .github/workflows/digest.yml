@@ -31,16 +31,16 @@ jobs:
       NEWS_MAX: "10"
       JOBS_MAX: "8"
       LMS_HEADLESS: "true"
-      # Moodle (smart) is off in the cloud: its SSO currently forces a password reset, which blocks unattended
-      # login. Add it back as "smart,nsmart" once password login works.
-      LMS_INSTANCES: nsmart
+      LMS_INSTANCES: smart,nsmart
       LMS_SMART_KIND: moodle
       LMS_SMART_URL: https://smart.wsu.ac.kr
-      # Students log in via the university SSO: "SSO login" button → "student ID login" tab
-      LMS_SMART_PRE_LOGIN_CLICKS: "a.btn-login-type-sso|text=학번/교번 로그인"
+      # Students log in via the university SSO: "SSO login" → switch to ENG (if still KOR) → "ID Number Login"
+      # tab; afterwards dismiss the "change your password" prompt with "Change Next" (a.btnNo)
+      LMS_SMART_PRE_LOGIN_CLICKS: "a.btn-login-type-sso|?label[for=language-toggle]:has(~ #korType.on)|text=ID Number Login"
+      LMS_SMART_POST_LOGIN_CLICKS: "a.btnNo"
       LMS_SMART_USERNAME_SELECTOR: "#iuser_id"
       LMS_SMART_PASSWORD_SELECTOR: "#iuser_password"
-      LMS_SMART_SUBMIT_SELECTOR: 'button:has-text("로그인"):visible'
+      LMS_SMART_SUBMIT_SELECTOR: 'button:text-is("Login"):visible'
       LMS_NSMART_KIND: canvas
       LMS_NSMART_URL: https://nsmart.wsu.ac.kr
       LMS_NSMART_USERNAME_SELECTOR: "#pseudonym_session_unique_id"

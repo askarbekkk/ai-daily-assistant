@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from abc import ABC, abstractmethod
+from urllib.parse import urlparse
 
 from playwright.async_api import BrowserContext, Page, async_playwright
 
@@ -132,24 +133,44 @@ class LMSAdapter(ABC):
         page.on("dialog", on_dialog)
         await page.goto(self.login_url, wait_until="networkidle")
         for selector in self.inst.pre_login_clicks:
-            await page.click(selector)
+            # "?selector" = optional step, e.g. switch language only if it isn't switched already
+            optional = selector.startswith("?")
+            try:
+                await page.click(selector.removeprefix("?"), timeout=5_000 if optional else 30_000)
+            except Exception:
+                if not optional:
+                    raise
+                continue
             try:
                 await page.wait_for_load_state("networkidle", timeout=15_000)
             except Exception:
                 pass
-        await page.fill(self.inst.username_selector, self.inst.username)
-        await page.fill(self.inst.password_selector, self.inst.password)
+        for selector, value in ((self.inst.username_selector, self.inst.username),
+                                (self.inst.password_selector, self.inst.password)):
+            try:
+                await page.fill(selector, value)
+            except Exception as exc:
+                # Playwright errors echo the filled value; never let credentials reach logs
+                raise RuntimeError(f"Login field {selector!r} not fillable ({type(exc).__name__})") from None
         if self.inst.submit_selector:
             await page.click(self.inst.submit_selector)
         else:
             await page.press(self.inst.password_selector, "Enter")
+        for selector in self.inst.post_login_clicks:
+            try:
+                await page.click(selector, timeout=10_000)
+                log.info("[%s] clicked post-login prompt: %s", self.inst.name, selector)
+            except Exception:
+                pass  # prompt didn't appear this time
+        # SSO portals redirect back to the LMS after login; wait for that before checking the session
+        host = urlparse(self.inst.url).netloc
         try:
-            await page.wait_for_load_state("networkidle", timeout=30_000)
+            await page.wait_for_url(lambda u: urlparse(u).netloc == host, timeout=30_000)
         except Exception:
             pass
         await page.goto(self.home_url, wait_until="domcontentloaded")
         if not await self.is_logged_in(page):
-            reason = f"Portal says: {' / '.join(dialogs)}" if dialogs else "captcha/2FA or wrong selectors"
+            reason = f"portal says: {' / '.join(dialogs)}" if dialogs else "captcha/2FA or wrong selectors"
             raise SessionExpired(
                 f"Unattended login to '{self.inst.name}' failed ({reason}). "
                 f"Run: python -m app lms-login {self.inst.name}"

@@ -35,6 +35,8 @@ class LMSInstance:
     submit_selector: str = ""
     # Selectors clicked in order before filling the form, e.g. an "SSO login" button and a login-type tab
     pre_login_clicks: tuple[str, ...] = ()
+    # Optional selectors clicked after submitting if they appear, e.g. a "change password later" button
+    post_login_clicks: tuple[str, ...] = ()
 
     @property
     def state_path(self) -> Path:
@@ -184,6 +186,7 @@ def load_lms_instance(name: str) -> LMSInstance:
         submit_selector=get("SUBMIT_SELECTOR"),
         # "|"-separated because CSS selectors themselves may contain commas
         pre_login_clicks=tuple(s.strip() for s in get("PRE_LOGIN_CLICKS").split("|") if s.strip()),
+        post_login_clicks=tuple(s.strip() for s in get("POST_LOGIN_CLICKS").split("|") if s.strip()),
     )
 
 
