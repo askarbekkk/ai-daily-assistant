@@ -41,7 +41,8 @@ async def cmd_run() -> None:
     await dp.start_polling(bot)
 
 
-async def cmd_digest(slot: str, dry_run: bool, refresh_lms: bool, skip_empty: bool = False) -> None:
+async def cmd_digest(slot: str, dry_run: bool, refresh_lms: bool, skip_empty: bool = False,
+                     once_per_slot: bool = False) -> None:
     from .digest import build_digest
     from .lms.watcher import check_all
 
@@ -71,12 +72,17 @@ async def cmd_digest(slot: str, dry_run: bool, refresh_lms: bool, skip_empty: bo
         if refresh_lms and settings.lms:
             notify = lambda t: bot.send_message(settings.telegram_chat_id, t)  # noqa: E731
             print(json.dumps(await check_all(settings, storage, notify=notify), ensure_ascii=False, indent=2))
+        sent_key = f"sent:{datetime.now(settings.tz).date()}:{slot}"
+        if once_per_slot and await storage.get_kv(sent_key):
+            print(f"Slot {slot} already sent today, skipping (backup trigger).")
+            return
         result = await build_digest(slot, settings, storage, LLMEngine(settings))
         if skip_empty and result.empty and slot != "morning":
             print(f"Slot {slot}: nothing new, not sending.")
             return
         await send_long(bot, settings.telegram_chat_id, result.text)
         await result.commit()
+        await storage.set_kv(sent_key, datetime.now(settings.tz).isoformat(timespec="minutes"))
         print("Sent.")
     finally:
         await bot.session.close()
@@ -131,6 +137,8 @@ def main() -> None:
     d.add_argument("--dry-run", action="store_true", help="Print to console instead of sending")
     d.add_argument("--refresh-lms", action="store_true", help="Poll LMS portals first")
     d.add_argument("--skip-empty", action="store_true", help="Don't send midday/evening digests with nothing new")
+    d.add_argument("--once-per-slot", action="store_true",
+                   help="Skip if this slot was already sent today (lets backup cron triggers be safe)")
     for name, help_ in (("lms-login", "Log in to an LMS in a visible browser and save the session"),
                         ("lms-probe", "Show login form fields (to configure auto-login)")):
         sp = sub.add_parser(name, help=help_)
