@@ -1,4 +1,4 @@
-# 🤖 Personal AI Daily Assistant & LMS Watcher
+# Personal AI Daily Assistant & LMS Watcher
 
 **Smart Context-Aware Daily Digest & Deadline Tracker for Engineers and Students**
 
