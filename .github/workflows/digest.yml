@@ -2,11 +2,18 @@ name: Daily digest
 
 on:
   schedule:
-    # GitHub cron is UTC and usually starts 5-15 min late, so runs are set 10 min early.
-    # 08:50 / 13:50 / 20:50 Asia/Seoul
+    # GitHub cron is UTC, best-effort and can be late or skipped under load. Each slot therefore has
+    # backup triggers; --once-per-slot makes them no-ops once that slot's digest has been sent.
+    # Morning 08:50 / 09:20 / 09:50 KST
     - cron: "50 23 * * *"
+    - cron: "20 0 * * *"
+    - cron: "50 0 * * *"
+    # Midday 13:50 / 14:20 KST
     - cron: "50 4 * * *"
+    - cron: "20 5 * * *"
+    # Evening 20:50 / 21:20 KST
     - cron: "50 11 * * *"
+    - cron: "20 12 * * *"
   workflow_dispatch:
     inputs:
       slot:
@@ -104,7 +111,10 @@ jobs:
           fi
 
       - name: Build and send digest
-        run: python -m app digest ${{ inputs.slot || 'auto' }} --refresh-lms --skip-empty
+        # Manual runs always send; scheduled (incl. backup) runs send each slot at most once a day
+        run: >-
+          python -m app digest ${{ inputs.slot || 'auto' }} --refresh-lms --skip-empty
+          ${{ github.event_name == 'schedule' && '--once-per-slot' || '' }}
 
       - name: Encrypt state
         if: always()

@@ -151,7 +151,7 @@ def main() -> None:
     if args.cmd == "run":
         coro = cmd_run()
     elif args.cmd == "digest":
-        coro = cmd_digest(args.slot, args.dry_run, args.refresh_lms, args.skip_empty)
+        coro = cmd_digest(args.slot, args.dry_run, args.refresh_lms, args.skip_empty, args.once_per_slot)
     elif args.cmd == "lms-check":
         coro = cmd_lms("check", None)
     elif args.cmd in ("lms-login", "lms-probe"):
