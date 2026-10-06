@@ -21,6 +21,10 @@ on:
         type: choice
         options: [auto, morning, midday, evening]
         default: auto
+      once:
+        description: "Skip if this slot was already sent today (used by the external cron trigger)"
+        type: boolean
+        default: false
 
 concurrency:
   group: digest
@@ -111,10 +115,11 @@ jobs:
           fi
 
       - name: Build and send digest
-        # Manual runs always send; scheduled (incl. backup) runs send each slot at most once a day
+        # Manual runs always send. Scheduled runs and the external cron-job.org trigger (once=true) send each
+        # slot at most once a day, so whichever fires first wins and the others are no-ops.
         run: >-
           python -m app digest ${{ inputs.slot || 'auto' }} --refresh-lms --skip-empty
-          ${{ github.event_name == 'schedule' && '--once-per-slot' || '' }}
+          ${{ (github.event_name == 'schedule' || inputs.once) && '--once-per-slot' || '' }}
 
       - name: Encrypt state
         if: always()
