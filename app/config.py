@@ -80,7 +80,7 @@ class Settings(BaseSettings):
         r"|deep learning|нейросет|backend|бэкенд|python"
     )
     job_exclude: str = (
-        r"senior|lead|head|principal|руководител|архитектор|продаж|sales|\b1[сc]\b|php|оператор"
+        r"senior|lead|head|principal|staff|director|\bvp\b|\biii\b|\biv\b|руководител|архитектор|продаж|sales|\b1[сc]\b|php|оператор"
         r"|менеджер|маркетолог|преподавател|учител|manager|marketing|recruit|account exec|customer success"
         r"|support|designer|writer|copywriter"
     )
@@ -91,6 +91,8 @@ class Settings(BaseSettings):
         "https://himalayas.app/jobs/rss"
     )
     job_feeds_lookback_days: int = 7
+    # Keyless JSON job APIs: jobicy, remoteok
+    job_apis: str = "jobicy,remoteok"
 
     news_feeds: str = (
         "https://huggingface.co/blog/feed.xml,https://openai.com/news/rss.xml,"

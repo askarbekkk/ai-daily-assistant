@@ -15,6 +15,7 @@ from .config import Settings
 from .llm import LLMEngine, LLMUnavailable
 from .models import Assignment, AssignmentChange, DigestLLM, NewsItem, NudgePlan, Vacancy
 from .sources.hh import fetch_vacancies
+from .sources.jobs_api import fetch_api_jobs
 from .sources.jobs_rss import fetch_rss_jobs
 from .sources.news import fetch_news
 from .storage import Storage
@@ -293,10 +294,12 @@ async def build_digest(slot: str, settings: Settings, storage: Storage, llm: LLM
                    if want_jobs and settings.hh_enabled else asyncio.sleep(0, []))
         rss_jobs_task = (_safe(fetch_rss_jobs(settings, http), "job RSS", failures)
                          if want_jobs and settings.job_feed_urls else asyncio.sleep(0, []))
+        api_jobs_task = (_safe(fetch_api_jobs(settings, http), "job APIs", failures)
+                         if want_jobs and settings.job_apis else asyncio.sleep(0, []))
         news_task = (_safe(fetch_news(settings, http), "RSS", failures)
                      if "news" in keys and settings.feeds else asyncio.sleep(0, []))
-        hh_jobs, rss_jobs, all_news = await asyncio.gather(hh_task, rss_jobs_task, news_task)
-    all_jobs = hh_jobs + rss_jobs
+        hh_jobs, rss_jobs, api_jobs, all_news = await asyncio.gather(hh_task, rss_jobs_task, api_jobs_task, news_task)
+    all_jobs = hh_jobs + api_jobs + rss_jobs
 
     unseen_jobs = await storage.filter_unseen("jobs", [v.id for v in all_jobs])
     jobs = [v for v in all_jobs if v.id in unseen_jobs][:MAX_CANDIDATES]

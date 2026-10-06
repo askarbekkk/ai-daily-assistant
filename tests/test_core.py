@@ -160,6 +160,27 @@ def test_canvas_parse_planner():
     assert items[3].submitted is True
 
 
+# ── job APIs ────────────────────────────────────────────────
+
+
+def test_job_api_parsers():
+    from app.sources.jobs_api import parse_jobicy, parse_remoteok
+
+    since = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    jobicy = {"jobs": [
+        {"id": 1, "jobTitle": "ML Engineer", "companyName": "Acme", "url": "https://j/1", "jobGeo": "Anywhere",
+         "jobLevel": "Midweight", "annualSalaryMin": "90000", "annualSalaryMax": "120000", "salaryCurrency": "USD",
+         "jobExcerpt": "<p>Build models</p>", "pubDate": "2026-10-04 10:00:00"},
+        {"id": 2, "jobTitle": "Old job", "url": "https://j/2", "pubDate": "2026-09-01 10:00:00"},
+    ]}
+    [v] = parse_jobicy(jobicy, since)
+    assert v.id == "jobicy:1" and v.salary == "90 000–120 000 USD" and v.snippet == "Build models"
+    remoteok = [{"legal": "notice"}, {"id": "9", "position": "AI agent engineer", "company": "X",
+                                      "url": "https://r/9", "date": "2026-10-05T08:00:00+00:00"}]
+    [r] = parse_remoteok(remoteok, since)
+    assert r.id == "remoteok:9" and r.title == "AI agent engineer"
+
+
 # ── storage ─────────────────────────────────────────────────
 
 
