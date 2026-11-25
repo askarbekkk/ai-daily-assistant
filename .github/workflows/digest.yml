@@ -45,14 +45,15 @@ jobs:
       LMS_INSTANCES: smart,nsmart
       LMS_SMART_KIND: moodle
       LMS_SMART_URL: https://smart.wsu.ac.kr
-      # Students log in via the university SSO: "SSO login" → switch to ENG (if still KOR) → "ID Number Login"
-      # tab; afterwards dismiss the "change your password" prompt with "Change Next" (a.btnNo).
-      # lg_guide_btn closes the passkey announcement modal that covers the login tabs.
-      LMS_SMART_PRE_LOGIN_CLICKS: "a.btn-login-type-sso|?button.lg_guide_btn|?label[for=language-toggle]:has(~ #korType.on)|?button.lg_guide_btn|text=ID Number Login"
+      # Students log in via the university SSO: "SSO login" → close the passkey announcement modal
+      # (lg_guide_btn) → "ID Number Login" tab (#id_select). Selectors avoid button text, which follows the
+      # page language. After login the modal reappears over the "change your password" prompt, so close it
+      # again before "Change Next" (a.btnNo).
+      LMS_SMART_PRE_LOGIN_CLICKS: "a.btn-login-type-sso|?button.lg_guide_btn|#id_select"
       LMS_SMART_POST_LOGIN_CLICKS: "button.lg_guide_btn|a.btnNo"
       LMS_SMART_USERNAME_SELECTOR: "#iuser_id"
       LMS_SMART_PASSWORD_SELECTOR: "#iuser_password"
-      LMS_SMART_SUBMIT_SELECTOR: 'button:text-is("Login"):visible'
+      LMS_SMART_SUBMIT_SELECTOR: 'button.btn_login'
       LMS_NSMART_KIND: canvas
       LMS_NSMART_URL: https://nsmart.wsu.ac.kr
       LMS_NSMART_USERNAME_SELECTOR: "#pseudonym_session_unique_id"
