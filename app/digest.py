@@ -213,7 +213,7 @@ Data Science, MLOps and Backend. Language: {lang}.
 Rules:
 - Facts only, no hype, no clickbait, no emojis inside fields.
 - Jobs: keep only roles that fit ML/AI/Data Science/MLOps/Backend for a student or junior/middle engineer. \
-Reject sales, support, teaching, senior/lead/head, unrelated stacks. Return at most {jobs_max}.
+Reject sales, support, teaching, senior/lead/head, unrelated stacks. Prefer internships and roles in South Korea over remote ones. Return at most {jobs_max}.
 - News: keep only substantive items (model/tool releases, research, notable engineering posts). \
 Skip marketing, webinars, listicles. Return at most {news_max}.
 - Reference items only by their index. Every text field must be short.

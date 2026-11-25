@@ -27,7 +27,7 @@ assistant tells me something changed.
    - **Diff analysis:** the current state is compared against SQLite snapshots, and the assistant reacts only to
      **new assignments, moved deadlines and removed tasks**.
 2. **Smart Relevance Filtering**
-   - Jobs and internships (HH.ru, Jobicy and RemoteOK APIs, We Work Remotely / Himalayas feeds) with strict regex + LLM
+   - Jobs and internships in Korea (Wanted, LinkedIn) plus remote roles (HH.ru, Jobicy and RemoteOK APIs, We Work Remotely / Himalayas feeds) with strict regex + LLM
      filtering: focused on ML, AI, Data Science, MLOps and Backend; senior, sales and unrelated roles are dropped.
    - AI news aggregation from RSS (Hugging Face, OpenAI, Google DeepMind, Habr ML) with an anti-clickbait filter and
      de-duplication, so nothing is shown twice.
@@ -56,7 +56,7 @@ flowchart LR
   subgraph Sources
     LMS1[Moodle<br/>smart.wsu.ac.kr]
     LMS2[Canvas<br/>nsmart.wsu.ac.kr]
-    JOBS[HH.ru + remote job APIs/RSS]
+    JOBS[Korea: Wanted + LinkedIn<br/>remote: HH.ru, APIs, RSS]
     NEWS[AI news RSS]
   end
   LMS1 & LMS2 -->|Playwright session + JSON API| W[LMS Watcher]

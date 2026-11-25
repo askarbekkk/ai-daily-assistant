@@ -78,7 +78,7 @@ class LLMEngine:
             try:
                 response = await self._client.aio.models.generate_content(model=model, contents=user, config=config)
             except APIError as exc:
-                if exc.code in (429, 503) and i < len(models) - 1:
+                if exc.code in (404, 429, 503) and i < len(models) - 1:
                     log.warning("Gemini %s unavailable (%s), trying %s", model, exc.code, models[i + 1])
                     continue
                 raise

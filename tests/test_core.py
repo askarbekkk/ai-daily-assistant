@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from app.config import parse_schedule
+from app.config import Settings, parse_schedule
 from app.digest import L, Sections, bucket_deadlines, render, trim_to_limit, visible_words
 from app.lms.canvas import _loads, parse_planner_items
 from app.lms.diff import diff_assignments
@@ -203,3 +203,21 @@ async def test_storage_roundtrip(tmp_path):
     assert len(rows) == 2
     await st.mark_changes_reported([i for i, _ in rows])
     assert await st.unreported_changes() == []
+
+
+def test_korea_job_parsers():
+    from app.sources.jobs_api import parse_linkedin, parse_wanted
+
+    [w] = parse_wanted({"data": [{"id": 7, "position": "ML 엔지니어", "company": {"name": "로민"},
+                                  "address": {"location": "서울"}, "annual_from": 0, "annual_to": 3,
+                                  "due_time": "2026-11-22"}]})
+    assert w.id == "wanted:7" and w.url.endswith("/wd/7") and w.experience == "0–3 yrs"
+    html = ('<div class="base-card" data-entity-urn="urn:li:jobPosting:42">'
+            '<a class="base-card__full-link" href="https://kr.linkedin.com/jobs/view/x-42?pos=1"></a>'
+            '<h3 class="base-search-card__title"> AI Intern </h3><h4 class="base-search-card__subtitle">Toss</h4>'
+            '<span class="job-search-card__location">Seoul</span></div>')
+    [li] = parse_linkedin(html)
+    assert li.id == "linkedin:42" and li.url == "https://kr.linkedin.com/jobs/view/x-42" and li.company == "Toss"
+    titles = ["ML엔지니어 (신입)", "AI 딥러닝 연구원", "시니어 백엔드 개발자", "SEO 마케팅 팀원", "Sr. ML Engineer", "Email triage"]
+    kept = filter_vacancies([Vacancy(id=t, title=t, url="u") for t in titles], Settings().job_include, Settings().job_exclude)
+    assert [v.title for v in kept] == ["ML엔지니어 (신입)", "AI 딥러닝 연구원"]

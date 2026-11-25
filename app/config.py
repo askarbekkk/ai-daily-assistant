@@ -63,9 +63,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-flash-latest"
-    # Tried in order when the main model is overloaded (503) or rate-limited (429)
-    gemini_fallback_models: str = "gemini-flash-lite-latest,gemini-3.5-flash"
+    gemini_model: str = "gemini-3.8-flash"
+    # Tried in order when the main model is retired (404), overloaded (503) or rate-limited (429)
+    gemini_fallback_models: str = "gemini-3.5-flash,gemini-3.5-flash-lite"
     digest_language: str = "ru"
     digest_max_words: int = 380
 
@@ -76,13 +76,15 @@ class Settings(BaseSettings):
     hh_experience: str = ""
     hh_remote_only: bool = False
     job_include: str = (
-        r"\bml\b|machine learning|машинн|\bai\b|\bии\b|data scien|nlp|computer vision|mlops|llm"
-        r"|deep learning|нейросет|backend|бэкенд|python"
+        r"(?<![a-z])ml(?![a-z])|machine learning|машинн|(?<![a-z])ai(?![a-z])|\bии\b|data scien|nlp|computer vision"
+        r"|mlops|llm|deep learning|нейросет|backend|бэкенд|python"
+        r"|머신러닝|딥러닝|인공지능|데이터 ?사이언|데이터 ?엔지니어|백엔드|서버|파이썬|자연어|컴퓨터 ?비전"
     )
     job_exclude: str = (
         r"senior|lead|head|principal|staff|director|\bvp\b|\biii\b|\biv\b|руководител|архитектор|продаж|sales|\b1[сc]\b|php|оператор"
         r"|менеджер|маркетолог|преподавател|учител|manager|marketing|recruit|account exec|customer success"
-        r"|support|designer|writer|copywriter"
+        r"|support|designer|writer|copywriter|\bsr\b"
+        r"|시니어|팀장|수석|마케팅|영업|디자이너"
     )
     jobs_max: int = 5
     job_feeds: str = (
@@ -91,8 +93,8 @@ class Settings(BaseSettings):
         "https://himalayas.app/jobs/rss"
     )
     job_feeds_lookback_days: int = 7
-    # Keyless JSON job APIs: jobicy, remoteok
-    job_apis: str = "jobicy,remoteok"
+    # Keyless job APIs: wanted, linkedin (Korea); jobicy, remoteok (remote)
+    job_apis: str = "wanted,linkedin,jobicy,remoteok"
 
     news_feeds: str = (
         "https://huggingface.co/blog/feed.xml,https://openai.com/news/rss.xml,"
