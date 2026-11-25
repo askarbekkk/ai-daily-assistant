@@ -137,9 +137,10 @@ class LMSAdapter(ABC):
             optional = selector.startswith("?")
             try:
                 await page.click(selector.removeprefix("?"), timeout=5_000 if optional else 30_000)
-            except Exception:
+            except Exception as exc:
                 if not optional:
-                    raise
+                    raise RuntimeError(f"Login step {selector!r} not found on {page.url} "
+                                       f"(title {await page.title()!r}): {type(exc).__name__}") from None
                 continue
             try:
                 await page.wait_for_load_state("networkidle", timeout=15_000)
